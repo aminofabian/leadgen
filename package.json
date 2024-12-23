@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "vercel-build": "npx prisma generate && next build",
     "build": "next build",
     "lint": "next lint",
     "postinstall": "prisma generate",
