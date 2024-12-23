@@ -1,0 +1,296 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "linux-arm64-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  VERIFIED_USER
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+  TRIALING
+  UNPAID
+  PAUSED
+  INACTIVE
+  CANCELLED
+}
+
+model User {
+  id                String    @id @default(cuid())
+  firstName         String?
+  lastName          String?
+  email            String?   @unique
+  emailVerified    DateTime?
+  image            String?
+  password         String?
+  role             UserRole  @default(USER)
+  isTwoFactorEnabled Boolean @default(false)
+  
+  // Keep existing social fields
+  username         String?
+  bio              String?
+  location         String?
+  website          String?
+  twitter          String?
+  facebook         String?
+  instagram        String?
+  linkedin         String?
+  youtube          String?
+  github           String?
+  discord          String?
+  tiktok           String?
+
+  // Relations
+  accounts         Account[]
+  sessions        Session[]
+  subscription    Subscription?
+  integrations    Integration[]
+  automations     Automation[]
+  hashtags        Hashtag[]
+  hashtagSearches HashtagSearch[]
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  twoFactorConfirmation TwoFactorConfirmation?
+
+    @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model VerificationToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expires   DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([email, token])
+}
+
+model PasswordResetToken {
+  id      String   @id @default(cuid())
+  email   String
+  token   String   @unique
+  expires DateTime
+
+  @@unique([email, token])
+}
+
+model Integration {
+  id          String       @id @default(cuid())
+  userId      String
+  name        String // e.g., "instagram", "reddit", "twitter"
+  token       String
+  expiresAt   DateTime?
+  username    String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  automations Automation[]
+
+  @@unique([userId, name])
+  @@map("integrations")
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  userId               String             @unique
+  status               SubscriptionStatus
+  priceId              String
+  customerId           String?
+  stripeSubscriptionId String?
+  currentPeriodStart   DateTime
+  currentPeriodEnd     DateTime
+  cancelAtPeriodEnd    Boolean            @default(false)
+  canceledAt           DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  features             Json // Store enabled features for this subscription
+  metadata             Json? // Additional subscription metadata
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+model SubscriptionPlan {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  priceId     String   @unique
+  price       Float
+  interval    String // monthly, yearly
+  features    String[]
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("subscription_plans")
+}
+
+model Automation {
+  id            String           @id @default(cuid())
+  userId        String
+  integrationId String
+  type          String // dm, post, comment, etc.
+  status        String // active, paused, completed, failed
+  config        Json // Flexible configuration for different automation types
+  stats         Json? // Statistics and metrics
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  lastRunAt     DateTime?
+  nextRunAt     DateTime?
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  integration   Integration      @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  tasks         AutomationTask[]
+
+  @@map("automations")
+}
+
+model AutomationTask {
+  id           String     @id @default(cuid())
+  automationId String
+  status       String // pending, running, completed, failed
+  result       Json? // Task result data
+  error        String? // Error message if failed
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  startedAt    DateTime?
+  completedAt  DateTime?
+  automation   Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+
+  @@map("automation_tasks")
+}
+
+model Hashtag {
+  id                String            @id @default(cuid())
+  userId            String
+  name              String
+  postsCount        Int               @default(0)
+  avgLikes          Float             @default(0)
+  avgComments       Float             @default(0)
+  searchedAt        DateTime          @default(now())
+  relatedHashtags   HashtagRelation[] @relation("HashtagToRelated")
+  relatedToHashtags HashtagRelation[] @relation("RelatedToHashtag")
+  posts             Post[]
+  user              User              @relation(fields: [userId], references: [id])
+  hashtagSearch     HashtagSearch?    @relation(fields: [hashtagSearchId], references: [id])
+  hashtagSearchId   String?
+
+  @@index([userId])
+  @@index([hashtagSearchId])
+}
+
+model HashtagRelation {
+  id               String   @id @default(cuid())
+  hashtagId        String
+  relatedHashtagId String
+  hashtag          Hashtag  @relation("HashtagToRelated", fields: [hashtagId], references: [id], onDelete: Cascade)
+  relatedHashtag   Hashtag  @relation("RelatedToHashtag", fields: [relatedHashtagId], references: [id], onDelete: Cascade)
+  createdAt        DateTime @default(now())
+
+  @@unique([hashtagId, relatedHashtagId])
+  @@index([hashtagId])
+  @@index([relatedHashtagId])
+}
+
+model Post {
+  id           String   @id @default(cuid())
+  hashtagId    String
+  postId       String // Instagram post ID
+  caption      String?  @db.Text
+  likeCount    Int      @default(0)
+  commentCount Int      @default(0)
+  postedAt     DateTime
+  hashtag      Hashtag  @relation(fields: [hashtagId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+
+  @@index([hashtagId])
+  @@index([postId])
+}
+
+model HashtagSearch {
+  id        String    @id @default(cuid())
+  userId    String
+  query     String
+  hashtags  Hashtag[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([query])
+}
+
+model Hashtags {
+  id                 String            @id @default(cuid())
+  userId             String
+  name               String
+  imageUrl           String?
+  businessDescription String?
+  targetAudience     String?
+  searchedAt         DateTime          @default(now())
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  relatedHashtags    RelatedHashtags[]
+}
+
+model RelatedHashtags {
+  id        String   @id @default(cuid())
+  name      String
+  posts     Int      @default(0)
+  hashtagId String
+  hashtag   Hashtags @relation(fields: [hashtagId], references: [id], onDelete: Cascade)
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model TwoFactorConfirmation {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId])
+}
