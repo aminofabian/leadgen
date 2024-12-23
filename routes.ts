@@ -72,6 +72,5 @@ export const apiAuthPrefix = "/api/auth";
 export const DEFAULT_LOGIN_REDIRECT = "/";
 
 export const adminRoutes = [
-  "/admin",
   // Add other admin routes here
 ];
