@@ -4,6 +4,7 @@
 
 export const publicRoutes = [
   "/auth/new-verification",
+  "admin",
   "/automation/dm",
   "/hashtag-search",
   "/api-docs",
