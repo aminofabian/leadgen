@@ -8,9 +8,9 @@ import {
   adminRoutes
 } from "@/routes";
 
-const { auth: middleware } = NextAuth(authConfig);
+export const { auth } = NextAuth(authConfig);
 
-export default middleware((req) => {
+export default auth((req) => {
   const { nextUrl } = req;
   const isLoggedIn = !!req.auth;
   
@@ -33,22 +33,9 @@ export default middleware((req) => {
     nextUrl.pathname.startsWith(route)
   );
 
-  // Check if it's the Instagram API endpoint
-  const isInstagramApi = nextUrl.pathname.startsWith('/api/instagram');
-  if (isInstagramApi) {
-    console.log("Allowing Instagram API route");
-    return;
-  }
-
   // Handle API routes
   if (isApiAuthRoute) {
     console.log("Allowing API auth route");
-    return;
-  }
-
-  // Handle public routes
-  if (isPublicRoute) {
-    console.log("Allowing public route");
     return;
   }
 
@@ -56,36 +43,34 @@ export default middleware((req) => {
   if (isAuthRoute) {
     if (isLoggedIn) {
       console.log("Redirecting logged-in user from auth route");
-      return Response.redirect(new URL(DEFAULT_LOGIN_REDIRECT, nextUrl.origin));
+      return Response.redirect(new URL(DEFAULT_LOGIN_REDIRECT, nextUrl));
     }
     console.log("Allowing auth route");
     return;
   }
 
+  // Handle non-logged in users
+  if (!isLoggedIn && !isPublicRoute) {
+    console.log("Redirecting non-logged in user to login");
+    const callbackUrl = encodeURIComponent(nextUrl.pathname);
+    return Response.redirect(new URL(`/auth/login?callbackUrl=${callbackUrl}`, nextUrl));
+  }
+
   // Handle admin routes
   if (isAdminRoute) {
-    if (!isLoggedIn) {
-      console.log("Redirecting non-logged-in user from admin route");
-      return Response.redirect(new URL("/auth/login", nextUrl.origin));
+    const isAdmin = req.auth?.user?.role === "ADMIN";
+    console.log("Checking admin access:", {
+      isAdmin,
+      userRole: req.auth?.user?.role,
+      userEmail: req.auth?.user?.email
+    });
+    
+    if (!isAdmin) {
+      console.log("Unauthorized admin access attempt");
+      return Response.redirect(new URL("/unauthorized", nextUrl));
     }
-
-    const userRole = req.auth?.user?.role;
-    if (userRole !== "ADMIN") {
-      console.log("Redirecting non-admin user from admin route");
-      return Response.redirect(new URL("/", nextUrl.origin));
-    }
-
-    console.log("Allowing admin route");
-    return;
   }
 
-  // Handle protected routes
-  if (!isLoggedIn) {
-    console.log("Redirecting to login");
-    return Response.redirect(new URL("/auth/login", nextUrl.origin));
-  }
-
-  console.log("Allowing protected route");
   return;
 });
 
