@@ -4,15 +4,17 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "NODE_ENV=production next build",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
-    "vercel-build": "NODE_ENV=production prisma generate && next build"
+    "vercel-build": "prisma generate && next build"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.4",
     "@hookform/resolvers": "^3.3.4",
+    "@neondatabase/serverless": "^0.7.2",
+    "@prisma/adapter-neon": "^6.1.0",
     "@prisma/client": "^6.1.0",
     "@radix-ui/react-alert-dialog": "^1.1.2",
     "@radix-ui/react-avatar": "^1.1.1",
@@ -52,6 +54,7 @@
     "tailwind-merge": "^2.3.0",
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^9.0.1",
+    "ws": "^8.18.0",
     "zod": "^3.23.8",
     "zustand": "^5.0.2"
   },
@@ -64,6 +67,7 @@
     "@types/react-dom": "^18",
     "@types/swagger-ui-react": "^4.18.3",
     "@types/uuid": "^9.0.8",
+    "@types/ws": "^8.5.13",
     "eslint": "^8",
     "eslint-config-next": "14.2.3",
     "postcss": "^8",
