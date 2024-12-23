@@ -16,7 +16,8 @@ import {
   FileText,
   Settings,
   Home,
-  LogOut
+  LogOut,
+  ArrowDownRightFromCircleIcon
 } from "lucide-react";
 
 const font = Jost({
@@ -66,6 +67,14 @@ const routes = {
       href: "/settings",
       color: "text-[#f059da]",
     },
+  ],
+  admin: [
+      {
+        label: "Admin",
+        icon: ArrowDownRightFromCircleIcon,
+        href: "/admin",
+        color: "text-[#f059da]",
+      },
   ]
 };
 
