@@ -4,12 +4,13 @@ import authConfig from "@/auth.config";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { getUserById } from "@/data/user";
 import db from "@/lib/db";
-import { UserRole } from "@prisma/client";
 import type { Adapter } from "next-auth/adapters"
+import { UserRole } from "@prisma/client";
 
 // List of admin emails
 const ADMIN_EMAILS = [
   "aminofab@gmail.com",
+  "aminofabian@gmail.com",
   "eminselimaslan@gmail.com",
 ];
 
