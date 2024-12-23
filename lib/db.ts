@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client'
-import { Pool } from '@neondatabase/serverless'
+import { Pool, PoolConfig } from '@neondatabase/serverless'
 import { PrismaNeon } from '@prisma/adapter-neon'
 import ws from 'ws'
 
@@ -7,8 +7,16 @@ declare global {
   var prisma: ReturnType<typeof prismaClientSingleton> | undefined
 }
 
+interface CustomPoolConfig extends PoolConfig {
+  webSocketConstructor: any;
+}
+
 const connectionString = process.env.DIRECT_URL!
-const pool = new Pool({ connectionString, max: 1, webSocketConstructor: ws as unknown as any } as const)
+const pool = new Pool({ 
+  connectionString, 
+  max: 1, 
+  webSocketConstructor: ws
+} as CustomPoolConfig)
 const adapter = new PrismaNeon(pool)
 
 const prismaClientSingleton = () => {
